@@ -574,71 +574,41 @@ AutoFarmToggle:OnChanged(function(state)
                 task.wait(0.7)
                 if ownedModel and ownedModel.Parent == modelsFolder then
                     if ownedModel.PrimaryPart then
-                        ownedModel:SetPrimaryPartCFrame(target.CFrame * CFrame.new(0, -5, 0))
-                    else
-                        local part = ownedModel:FindFirstChildWhichIsA("BasePart")
-                        if part then
-                            part.CFrame = target.CFrame * CFrame.new(0, -5, 0)
-                        end
+                        ownedModel:SetPrimaryPartCFrame(target.CFrame * CFrame.new(0,-----
+-----
+local RunService = game:GetService("RunService")
+local speedConnection
+
+local Toggle = Tabs.Stats:AddToggle("MovementToggle", {
+    Title = "Enable God Speed",
+    Default = false
+})
+
+Toggle:OnChanged(function()
+    if speedConnection then speedConnection:Disconnect() end
+    if Options.MovementToggle.Value then
+        speedConnection = RunService.Stepped:Connect(function()
+            local folder = workspace:FindFirstChild("RunningModels")
+            if folder then
+                for _, model in ipairs(folder:GetChildren()) do
+                    if model:GetAttribute("OwnerId") == game.Players.LocalPlayer.UserId then
+                        model:SetAttribute("MovementSpeed", Options.MovementSlider.Value)
                     end
                 end
-                repeat
-                    task.wait(0.3)
-                until not running or (ownedModel == nil or ownedModel.Parent ~= modelsFolder)
-                if not running then break end
-                local oldCharacter = player.Character
-                repeat
-                    task.wait(0.2)
-                until not running or (player.Character ~= oldCharacter and player.Character ~= nil)
-                if not running then break end
-                task.wait(0.4)
-                local newChar = player.Character
-                local newRoot = newChar:WaitForChild("HumanoidRootPart")
-                newRoot.CFrame = CFrame.new(737, 39, -2118)
-                task.wait(2.1)
             end
         end)
     end
 end)
-Options.AutoFarmToggle:SetValue(false)
+
+local Slider = Tabs.Stats:AddSlider("MovementSlider", {
+    Title = "Lucky Block Speed",
+    Default = 10000,
+    Min = 50,
+    Max = 50000,
+    Rounding = 0
+})
 -----
 -----
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local running = false
-local sliderValue = 1000
-local originalSpeed = nil
-local currentModel = nil
-local function getMyModel()
-    local folder = workspace:FindFirstChild("RunningModels")
-    if not folder then return nil end
-    for _, model in ipairs(folder:GetChildren()) do
-        if model:GetAttribute("OwnerId") == player.UserId then
-            return model
-        end
-    end
-    return nil
-end
-local function applySpeed()
-    local model = getMyModel()
-    if not model then
-        currentModel = nil
-        return
-    end
-    if model ~= currentModel then
-        currentModel = model
-        originalSpeed = model:GetAttribute("MovementSpeed")
-    end
-    if running then
-        if originalSpeed == nil then
-            originalSpeed = model:GetAttribute("MovementSpeed")
-        end
-        model:SetAttribute("MovementSpeed", sliderValue)
-    end
-end
-task.spawn(function()
-    while true do
-        if running then
             applySpeed()
         end
         task.wait(0.2)
