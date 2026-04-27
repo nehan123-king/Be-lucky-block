@@ -24,62 +24,36 @@ do
     
     local function TeleportAll(targetPos)
         if PLR.Character and PLR.Character:FindFirstChild("HumanoidRootPart") then
-            -- High-Altitude Bypass: Move up first to avoid floor sensors
-            PLR.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 50, 0))
-            task.wait(0.1)
             PLR.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos)
-        end
-        local folder = workspace:FindFirstChild("RunningModels")
-        if folder then
-            for _, m in pairs(folder:GetChildren()) do
-                if m:GetAttribute("OwnerId") == PLR.UserId then m:MoveTo(targetPos) end
-            end
         end
     end
 
     -- TELEPORTS TAB
     Tabs.Teleports:AddButton({
-        Title = "Instant Base Escape",
-        Description = "Teleports to the Main Farm",
-        Callback = function() TeleportAll(Vector3.new(715, 39, -2122)) end
-    })
-
-    Tabs.Teleports:AddDropdown("BaseSelector", {
-        Title = "Select Base",
-        Values = {
-            "Noob's Base", "David (Builderman)", "Farmer", "Mafia's Base", 
-            "Granny's Base", "Cowboy's Base", "Mummy's Base", "Werewolf's Base", 
-            "Vampire's Base", "Lifeguard's Base", "Pirate's Base", "Diver's Base", 
-            "Shark's Base", "Slayer", "Knight Judge"
-        },
-        Default = "Noob's Base",
-    })
-
-    Tabs.Teleports:AddButton({
-        Title = "Teleport to Selection",
+        Title = "Warp Forward (500 Studs)",
+        Description = "Jumps you forward in the direction you are facing",
         Callback = function()
-            local choice = Options.BaseSelector.Value
-            -- UPDATED SLAYER COORDS (Standing inside Slayer Zone)
-            if choice == "Slayer" then 
-                TeleportAll(Vector3.new(2500, 40, 1500)) -- Adjusted to push deeper into the map
-            elseif choice == "Noob's Base" then 
-                TeleportAll(Vector3.new(10, 5, 10))
-            elseif choice == "David (Builderman)" then
-                TeleportAll(Vector3.new(450, 5, 450))
+            local char = PLR.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                -- Moves you forward based on where your camera/character looks
+                root.CFrame = root.CFrame * CFrame.new(0, 5, -500)
             end
         end
     })
 
     Tabs.Teleports:AddButton({
         Title = "Get My Current Coords (Check F9)",
+        Description = "Use this once you reach Slayer!",
         Callback = function()
             local pos = PLR.Character.HumanoidRootPart.Position
-            print("Current Coords: Vector3.new(" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")")
-            Fluent:Notify({Title = "Coords Copied to Console", Content = "Stand in Slayer and press F9!", Duration = 5})
+            print("Slayer Coords: Vector3.new(" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")")
+            Fluent:Notify({Title = "Coords Logged!", Content = "Check F9 console for the Slayer numbers", Duration = 5})
         end
     })
 
-    -- CONFIG
+    -- [Dropdown and other buttons stay here for when we have the coords]
+
     SaveManager:SetLibrary(Fluent)
     InterfaceManager:SetLibrary(Fluent)
     InterfaceManager:BuildInterfaceSection(Tabs.Settings)
