@@ -23,26 +23,24 @@ local Options = Fluent.Options
 do
     local RunService = game:GetService("RunService")
     local player = game.Players.LocalPlayer
+    local dashConn
 
     ---------------------------------------------------------
-    -- BYPASS TELEPORT (BETTER THAN SPEED)
+    -- WORKING TELEPORT
     ---------------------------------------------------------
     Tabs.Stats:AddButton({
         Title = "Instant Base Escape",
-        Description = "Teleports you and your Brainrot outside the kick zone",
+        Description = "Teleports you out instantly",
         Callback = function()
             local folder = workspace:FindFirstChild("RunningModels")
-            local targetPos = Vector3.new(715, 39, -2122) -- Your farm zone
-            
+            local targetPos = Vector3.new(715, 39, -2122) 
             if folder then
                 for _, model in ipairs(folder:GetChildren()) do
                     if model:GetAttribute("OwnerId") == player.UserId then
-                        -- Instantly move the model to bypass the speed check
                         model:MoveTo(targetPos)
                     end
                 end
             end
-            
             if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
                 player.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos)
             end
@@ -50,33 +48,42 @@ do
     })
 
     ---------------------------------------------------------
-    -- LEGIT SPEED (STAYING UNDER 275)
+    -- BYPASS DASH (REPLACES BROKEN SPEED)
     ---------------------------------------------------------
-    local speedConn
-    local SpeedToggle = Tabs.Stats:AddToggle("MovementToggle", {
-        Title = "Enable Legit Speed", 
-        Description = "Locked at 250 to prevent kicks",
+    local DashToggle = Tabs.Stats:AddToggle("DashToggle", {
+        Title = "Enable Bypass Dash", 
+        Description = "Move fast without getting kicked",
         Default = false
     })
     
-    SpeedToggle:OnChanged(function()
-        if speedConn then speedConn:Disconnect() end
-        if Options.MovementToggle.Value then
-            speedConn = RunService.Heartbeat:Connect(function()
-                local folder = workspace:FindFirstChild("RunningModels")
-                if folder then
-                    for _, model in ipairs(folder:GetChildren()) do
-                        if model:GetAttribute("OwnerId") == player.UserId then
-                            -- We use 250 because 275 is the kick point
-                            model:SetAttribute("MovementSpeed", 250)
-                        end
-                    end
+    DashToggle:OnChanged(function()
+        if dashConn then dashConn:Disconnect() end
+        if Options.DashToggle.Value then
+            dashConn = RunService.Heartbeat:Connect(function()
+                local char = player.Character
+                local hum = char and char:FindFirstChild("Humanoid")
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                
+                if hum and root and hum.MoveDirection.Magnitude > 0 then
+                    -- This teleports you forward 2 studs every frame
+                    -- It confuses the server's speed check
+                    root.CFrame = root.CFrame + (hum.MoveDirection * (Options.DashPower.Value / 10))
                 end
             end)
         end
     end)
 
-    -- Finalize
+    Tabs.Stats:AddSlider("DashPower", {
+        Title = "Dash Power", 
+        Default = 5, 
+        Min = 1, 
+        Max = 15, 
+        Rounding = 1
+    })
+
+    ---------------------------------------------------------
+    -- FINAL CONFIG
+    ---------------------------------------------------------
     SaveManager:SetLibrary(Fluent)
     InterfaceManager:SetLibrary(Fluent)
     InterfaceManager:BuildInterfaceSection(Tabs.Settings)
