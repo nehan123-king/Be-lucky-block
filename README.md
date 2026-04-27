@@ -8,85 +8,94 @@ local Window = Fluent:CreateWindow({
     TabWidth = 160,
     Size = UDim2.fromOffset(550, 430),
     Acrylic = false,
-    Theme = "Darker"
+    Theme = "Darker",
+    MinimizeKey = Enum.KeyCode.LeftControl
 })
 
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "box" }),
-    Teleports = Window:AddTab({ Title = "Teleports", Icon = "map-pin" }),
+    Upgrades = Window:AddTab({ Title = "Upgrades", Icon = "info" }),
+    Stats = Window:AddTab({ Title = "Stats", Icon = "gauge" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
 
 local Options = Fluent.Options
 
 do
-    local TweenService = game:GetService("TweenService")
+    local RS = game:GetService("ReplicatedStorage")
     local PLR = game.Players.LocalPlayer
-    
-    local function SafeTeleport(targetPos)
-        local char = PLR.Character
-        local root = char and char:FindFirstChild("HumanoidRootPart")
-        if not root then return end
+    local knit = RS:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services")
 
-        -- Move models first
-        local folder = workspace:FindFirstChild("RunningModels")
-        if folder then
-            for _, m in pairs(folder:GetChildren()) do
-                if m:GetAttribute("OwnerId") == PLR.UserId then m:MoveTo(targetPos) end
-            end
-        end
-
-        -- Tween Bypass: Slides you through the air to confuse the anti-cheat
-        local distance = (root.Position - targetPos).Magnitude
-        local info = TweenInfo.new(distance / 150, Enum.EasingStyle.Linear) -- Speed control
-        local tween = TweenService:Create(root, info, {CFrame = CFrame.new(targetPos + Vector3.new(0, 10, 0))})
-        
-        tween:Play()
-    end
-
-    -- TELEPORTS TAB
-    Tabs.Teleports:AddDropdown("BaseSelector", {
-        Title = "Select Destination",
-        Values = {
-            "Slayer", "Knight Judge", "Noob's Base", "David (Builderman)", 
-            "Farmer", "Mafia's Base", "Granny's Base", "Cowboy's Base", 
-            "Mummy's Base", "Werewolf's Base", "Vampire's Base", 
-            "Lifeguard's Base", "Pirate's Base", "Diver's Base", "Shark's Base"
-        },
-        Default = "Slayer",
-    })
-
-    Tabs.Teleports:AddButton({
-        Title = "Safe Teleport (Anti-Cheat Bypass)",
+    ---------------------------------------------------------
+    -- WORKING TELEPORT (INSTANT BASE)
+    ---------------------------------------------------------
+    Tabs.Stats:AddButton({
+        Title = "Instant Base Escape",
+        Description = "Teleports you and your Brainrot to the farm spot",
         Callback = function()
-            local choice = Options.BaseSelector.Value
-            local coords = {
-                ["Slayer"] = Vector3.new(-643, 38, -2107),
-                ["Knight Judge"] = Vector3.new(-545, 38, -2058),
-                ["Noob's Base"] = Vector3.new(-465, 38, -2176),
-                ["David (Builderman)"] = Vector3.new(-386, 38, -2072),
-                ["Farmer"] = Vector3.new(-297, 38, -2171),
-                ["Mafia's Base"] = Vector3.new(-230, 38, -2087),
-                ["Granny's Base"] = Vector3.new(149, 38, 2148),
-                ["Cowboy's Base"] = Vector3.new(-58, 38, -2099),
-                ["Mummy's Base"] = Vector3.new(42, 38, -2150),
-                ["Werewolf's Base"] = Vector3.new(125, 38, -2090),
-                ["Vampire's Base"] = Vector3.new(208, 38, -2171),
-                ["Lifeguard's Base"] = Vector3.new(280, 38, -2090),
-                ["Pirate's Base"] = Vector3.new(392, 38, 2153),
-                ["Diver's Base"] = Vector3.new(479, 38, -2087),
-                ["Shark's Base"] = Vector3.new(628, 38, -2086)
-            }
+            local targetPos = Vector3.new(715, 39, -2122)
             
-            if coords[choice] then
-                SafeTeleport(coords[choice])
+            -- Move the player
+            if PLR.Character and PLR.Character:FindFirstChild("HumanoidRootPart") then
+                PLR.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos)
+            end
+            
+            -- Move the Brainrot models so they aren't lost
+            local folder = workspace:FindFirstChild("RunningModels")
+            if folder then
+                for _, m in pairs(folder:GetChildren()) do
+                    if m:GetAttribute("OwnerId") == PLR.UserId then
+                        m:MoveTo(targetPos)
+                    end
+                end
             end
         end
     })
 
-    -- CONFIG
+    ---------------------------------------------------------
+    -- MAIN FUNCTIONS (AUTO CLAIM / REBIRTH)
+    ---------------------------------------------------------
+    local claimRF = knit:WaitForChild("PlaytimeRewardService"):WaitForChild("RF"):WaitForChild("ClaimGift")
+    local rebirthRF = knit:WaitForChild("RebirthService"):WaitForChild("RF"):WaitForChild("Rebirth")
+    
+    Tabs.Main:AddToggle("AutoClaim", {Title = "Auto Claim Rewards", Default = false}):OnChanged(function()
+        task.spawn(function()
+            while Options.AutoClaim.Value do
+                for i = 1, 12 do
+                    pcall(function() claimRF:InvokeServer(i) end)
+                end
+                task.wait(1)
+            end
+        end)
+    end)
+    
+    Tabs.Main:AddToggle("AutoRebirth", {Title = "Auto Rebirth", Default = false}):OnChanged(function()
+        task.spawn(function()
+            while Options.AutoRebirth.Value do
+                pcall(function() rebirthRF:InvokeServer() end)
+                task.wait(1)
+            end
+        end)
+    end)
+
+    ---------------------------------------------------------
+    -- AUTO UPGRADES
+    ---------------------------------------------------------
+    local upgRF = knit:WaitForChild("UpgradesService"):WaitForChild("RF"):WaitForChild("Upgrade")
+    
+    Tabs.Upgrades:AddToggle("AutoUpgSpeed", {Title = "Auto Upgrade Speed", Default = false}):OnChanged(function()
+        task.spawn(function()
+            while Options.AutoUpgSpeed.Value do
+                pcall(function() upgRF:InvokeServer("MovementSpeed", 1) end)
+                task.wait(0.5)
+            end
+        end)
+    end)
+
+    -- FINAL SETUP
     SaveManager:SetLibrary(Fluent)
     InterfaceManager:SetLibrary(Fluent)
     InterfaceManager:BuildInterfaceSection(Tabs.Settings)
     SaveManager:BuildConfigSection(Tabs.Settings)
+    Window:SelectTab(1)
 end
