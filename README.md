@@ -23,14 +23,39 @@ local Options = Fluent.Options
 do
     local RunService = game:GetService("RunService")
     local player = game.Players.LocalPlayer
-    local speedConn
 
     ---------------------------------------------------------
-    -- BYPASS SPEED LOGIC
+    -- BYPASS TELEPORT (BETTER THAN SPEED)
     ---------------------------------------------------------
+    Tabs.Stats:AddButton({
+        Title = "Instant Base Escape",
+        Description = "Teleports you and your Brainrot outside the kick zone",
+        Callback = function()
+            local folder = workspace:FindFirstChild("RunningModels")
+            local targetPos = Vector3.new(715, 39, -2122) -- Your farm zone
+            
+            if folder then
+                for _, model in ipairs(folder:GetChildren()) do
+                    if model:GetAttribute("OwnerId") == player.UserId then
+                        -- Instantly move the model to bypass the speed check
+                        model:MoveTo(targetPos)
+                    end
+                end
+            end
+            
+            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                player.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos)
+            end
+        end
+    })
+
+    ---------------------------------------------------------
+    -- LEGIT SPEED (STAYING UNDER 275)
+    ---------------------------------------------------------
+    local speedConn
     local SpeedToggle = Tabs.Stats:AddToggle("MovementToggle", {
-        Title = "Enable Stealth Speed", 
-        Description = "Bypasses the 275 speed limit kick",
+        Title = "Enable Legit Speed", 
+        Description = "Locked at 250 to prevent kicks",
         Default = false
     })
     
@@ -38,19 +63,12 @@ do
         if speedConn then speedConn:Disconnect() end
         if Options.MovementToggle.Value then
             speedConn = RunService.Heartbeat:Connect(function()
-                -- 1. Fix Character Speed (Prevents Anti-Cheat Kick)
-                if player.Character and player.Character:FindFirstChild("Humanoid") then
-                    player.Character.Humanoid.WalkSpeed = 16 
-                end
-
-                -- 2. Boost the Lucky Block Model (Allows Base Escape)
                 local folder = workspace:FindFirstChild("RunningModels")
                 if folder then
                     for _, model in ipairs(folder:GetChildren()) do
                         if model:GetAttribute("OwnerId") == player.UserId then
-                            -- We stay at 250 internally to avoid the '275 limit'
-                            local safeVal = math.min(Options.MovementSlider.Value, 250)
-                            model:SetAttribute("MovementSpeed", safeVal)
+                            -- We use 250 because 275 is the kick point
+                            model:SetAttribute("MovementSpeed", 250)
                         end
                     end
                 end
@@ -58,18 +76,7 @@ do
         end
     end)
 
-    Tabs.Stats:AddSlider("MovementSlider", {
-        Title = "Safe Speed (Max 270)", 
-        Default = 200, 
-        Min = 16, 
-        Max = 270, -- Hard capped to stay under the 275 limit
-        Rounding = 0
-    })
-
-    ---------------------------------------------------------
-    -- [PLACE YOUR OTHER FUNCTIONS HERE]
-    ---------------------------------------------------------
-
+    -- Finalize
     SaveManager:SetLibrary(Fluent)
     InterfaceManager:SetLibrary(Fluent)
     InterfaceManager:BuildInterfaceSection(Tabs.Settings)
