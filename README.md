@@ -14,9 +14,6 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "box" }),
-    Upgrades = Window:AddTab({ Title = "Upgrades", Icon = "info" }),
-    Brainrots = Window:AddTab({ Title = "Brainrots", Icon = "bot" }),
-    Sell = Window:AddTab({ Title = "Sell", Icon = "dollar-sign" }),
     Stats = Window:AddTab({ Title = "Stats", Icon = "gauge" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
@@ -24,51 +21,16 @@ local Tabs = {
 local Options = Fluent.Options
 
 do
-    local ReplicatedStorage = game:GetService("ReplicatedStorage")
-    local Players = game:GetService("Players")
-    local player = Players.LocalPlayer
     local RunService = game:GetService("RunService")
-    local knit = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services")
-
-    ---------------------------------------------------------
-    -- AUTO CLAIM & REBIRTH (MAIN)
-    ---------------------------------------------------------
-    local claimGift = knit:WaitForChild("PlaytimeRewardService"):WaitForChild("RF"):WaitForChild("ClaimGift")
-    local autoClaiming = false
-    Tabs.Main:AddToggle("ACPR", {Title = "Auto Claim Playtime Rewards", Default = false}):OnChanged(function(s)
-        autoClaiming = s
-        task.spawn(function()
-            while autoClaiming do
-                for i = 1, 12 do if not autoClaiming then break end pcall(function() claimGift:InvokeServer(i) end) task.wait(0.25) end
-                task.wait(1)
-            end
-        end)
-    end)
-
-    local rebirth = knit:WaitForChild("RebirthService"):WaitForChild("RF"):WaitForChild("Rebirth")
-    local autoRebirth = false
-    Tabs.Main:AddToggle("AR", {Title = "Auto Rebirth", Default = false}):OnChanged(function(s)
-        autoRebirth = s
-        task.spawn(function() while autoRebirth do pcall(function() rebirth:InvokeServer() end) task.wait(1) end end)
-    end)
-
-    ---------------------------------------------------------
-    -- UPGRADES
-    ---------------------------------------------------------
-    local upgrade = knit:WaitForChild("UpgradesService"):WaitForChild("RF"):WaitForChild("Upgrade")
-    local upgRunning = false
-    Tabs.Upgrades:AddToggle("AMS", {Title = "Auto Upgrade Speed", Default = false}):OnChanged(function(s)
-        upgRunning = s
-        task.spawn(function() while upgRunning do pcall(function() upgrade:InvokeServer("MovementSpeed", 1) end) task.wait(0.5) end end)
-    end)
-
-    ---------------------------------------------------------
-    -- STATS (FIXED BYPASS SPEED)
-    ---------------------------------------------------------
+    local player = game.Players.LocalPlayer
     local speedConn
+
+    ---------------------------------------------------------
+    -- BYPASS SPEED LOGIC
+    ---------------------------------------------------------
     local SpeedToggle = Tabs.Stats:AddToggle("MovementToggle", {
-        Title = "Enable God Speed (Anti-Cheat Bypass)", 
-        Description = "Stay under 2200 to avoid 'Suspected of Cheating' kicks!",
+        Title = "Enable Stealth Speed", 
+        Description = "Bypasses the 275 speed limit kick",
         Default = false
     })
     
@@ -76,13 +38,19 @@ do
         if speedConn then speedConn:Disconnect() end
         if Options.MovementToggle.Value then
             speedConn = RunService.Heartbeat:Connect(function()
+                -- 1. Fix Character Speed (Prevents Anti-Cheat Kick)
+                if player.Character and player.Character:FindFirstChild("Humanoid") then
+                    player.Character.Humanoid.WalkSpeed = 16 
+                end
+
+                -- 2. Boost the Lucky Block Model (Allows Base Escape)
                 local folder = workspace:FindFirstChild("RunningModels")
                 if folder then
                     for _, model in ipairs(folder:GetChildren()) do
                         if model:GetAttribute("OwnerId") == player.UserId then
-                            -- Internal cap to bypass the red cheating message
-                            local val = math.min(Options.MovementSlider.Value, 2200)
-                            model:SetAttribute("MovementSpeed", val)
+                            -- We stay at 250 internally to avoid the '275 limit'
+                            local safeVal = math.min(Options.MovementSlider.Value, 250)
+                            model:SetAttribute("MovementSpeed", safeVal)
                         end
                     end
                 end
@@ -91,35 +59,17 @@ do
     end)
 
     Tabs.Stats:AddSlider("MovementSlider", {
-        Title = "Brainrot Speed", 
-        Default = 1000, 
-        Min = 50, 
-        Max = 2500, 
+        Title = "Safe Speed (Max 270)", 
+        Default = 200, 
+        Min = 16, 
+        Max = 270, -- Hard capped to stay under the 275 limit
         Rounding = 0
     })
 
     ---------------------------------------------------------
-    -- FARMING
+    -- [PLACE YOUR OTHER FUNCTIONS HERE]
     ---------------------------------------------------------
-    local farmRunning = false
-    Tabs.Brainrots:AddToggle("AutoFarmToggle", {Title = "Auto Farm Best Brainrots", Default = false}):OnChanged(function(s)
-        farmRunning = s
-        if s then
-            task.spawn(function()
-                while farmRunning do
-                    local char = player.Character or player.CharacterAdded:Wait()
-                    local root = char:WaitForChild("HumanoidRootPart")
-                    -- Teleport to the best zone
-                    root.CFrame = CFrame.new(715, 39, -2122)
-                    task.wait(2)
-                end
-            end)
-        end
-    end)
 
-    ---------------------------------------------------------
-    -- SAVE & SETTINGS
-    ---------------------------------------------------------
     SaveManager:SetLibrary(Fluent)
     InterfaceManager:SetLibrary(Fluent)
     InterfaceManager:BuildInterfaceSection(Tabs.Settings)
