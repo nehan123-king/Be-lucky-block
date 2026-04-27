@@ -27,28 +27,34 @@ do
     local PLR = game:GetService("Players").LocalPlayer
     local RunService = game:GetService("RunService")
     
-    local function MasterTeleport(targetPos)
-        if PLR.Character then
-            -- PivotTo is more reliable for moving models + players
-            PLR.Character:PivotTo(CFrame.new(targetPos + Vector3.new(0, 2, 0)))
-        end
+    -- SAFE TELEPORT (Bypasses "Suspicious" Kick)
+    local function SafeTP(targetPos)
+        local char = PLR.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+
+        -- Instead of instant, we do a very fast "blink"
+        local startPos = root.Position
+        root.CFrame = CFrame.new(startPos + Vector3.new(0, 50, 0)) -- Jump up first to avoid floor sensors
+        task.wait(0.1)
+        root.CFrame = CFrame.new(targetPos + Vector3.new(0, 2, 0))
+        
+        -- Move Brainrots
         local folder = workspace:FindFirstChild("RunningModels")
         if folder then
             for _, m in pairs(folder:GetChildren()) do
-                if m:GetAttribute("OwnerId") == PLR.UserId then
-                    m:PivotTo(CFrame.new(targetPos))
-                end
+                if m:GetAttribute("OwnerId") == PLR.UserId then m:PivotTo(CFrame.new(targetPos)) end
             end
         end
     end
 
     ---------------------------------------------------------
-    -- STATS TAB: PHYSICS BYPASS SPEED & TPs
+    -- STATS TAB: BYPASS SPEED & TPs
     ---------------------------------------------------------
     
     Tabs.Stats:AddButton({
         Title = "Instant Base Escape",
-        Callback = function() MasterTeleport(Vector3.new(715, 39, -2122)) end
+        Callback = function() SafeTP(Vector3.new(715, 39, -2122)) end
     })
 
     Tabs.Stats:AddDropdown("BaseSelector", {
@@ -78,33 +84,34 @@ do
                 ["Diver's Base"] = Vector3.new(479, 38, -2087),
                 ["Shark's Base"] = Vector3.new(628, 38, -2086)
             }
-            if coords[choice] then MasterTeleport(coords[choice]) end
+            if coords[choice] then SafeTP(coords[choice]) end
         end
     })
 
-    -- PHYSICS SPEED BYPASS
-    local sliderValue = 1000 
+    -- STEP-BYPASS SPEED
+    local sliderValue = 100 -- Default to a safe speed
     local speedConn
 
     Tabs.Stats:AddSlider("Slider", { 
-        Title = "Velocity Speed", 
-        Default = 1000, 
+        Title = "Bypass Speed", 
+        Default = 100, 
         Min = 16, 
-        Max = 10000, 
+        Max = 300, -- Keeping it at 300 max to avoid the "10k" kick
         Rounding = 1, 
         Callback = function(v) sliderValue = v end 
     }) 
 
-    Tabs.Stats:AddToggle("Toggle", { Title = "Enable Velocity Speed", Default = false }):OnChanged(function(state) 
+    Tabs.Stats:AddToggle("Toggle", { Title = "Enable Bypass Speed", Default = false }):OnChanged(function(state) 
         if speedConn then speedConn:Disconnect() end
         if state then 
-            speedConn = RunService.Stepped:Connect(function()
+            speedConn = RunService.Heartbeat:Connect(function(deltaTime)
                 pcall(function()
-                    local hum = PLR.Character and PLR.Character:FindFirstChild("Humanoid")
-                    local root = PLR.Character and PLR.Character:FindFirstChild("HumanoidRootPart")
+                    local char = PLR.Character
+                    local hum = char and char:FindFirstChild("Humanoid")
+                    local root = char and char:FindFirstChild("HumanoidRootPart")
                     if hum and root and hum.MoveDirection.Magnitude > 0 then
-                        -- Forces physics velocity in the direction you are walking
-                        root.AssemblyLinearVelocity = hum.MoveDirection * sliderValue + Vector3.new(0, root.AssemblyLinearVelocity.Y, 0)
+                        -- Moves your CFrame forward based on direction without setting Velocity
+                        root.CFrame = root.CFrame + (hum.MoveDirection * (sliderValue / 50))
                     end
                 end)
             end)
