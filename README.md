@@ -8,72 +8,69 @@ local Window = Fluent:CreateWindow({
     TabWidth = 160,
     Size = UDim2.fromOffset(550, 430),
     Acrylic = false,
-    Theme = "Darker",
-    MinimizeKey = Enum.KeyCode.LeftControl
+    Theme = "Darker"
 })
 
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "box" }),
-    Stats = Window:AddTab({ Title = "Stats", Icon = "gauge" }),
+    Teleports = Window:AddTab({ Title = "Teleports", Icon = "map-pin" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
-})
+}
 
 local Options = Fluent.Options
 
 do
-    local RS = game:GetService("ReplicatedStorage")
     local PLR = game.Players.LocalPlayer
-    local RunService = game:GetService("RunService")
     
-    -- INSTANT ESCAPE
-    Tabs.Stats:AddButton({
-        Title = "Instant Base Escape",
-        Callback = function()
-            local target = Vector3.new(715, 39, -2122)
-            for _, m in pairs(workspace.RunningModels:GetChildren()) do
-                if m:GetAttribute("OwnerId") == PLR.UserId then m:MoveTo(target) end
+    local function TeleportAll(targetPos)
+        if PLR.Character and PLR.Character:FindFirstChild("HumanoidRootPart") then
+            PLR.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos)
+        end
+        local folder = workspace:FindFirstChild("RunningModels")
+        if folder then
+            for _, m in pairs(folder:GetChildren()) do
+                if m:GetAttribute("OwnerId") == PLR.UserId then m:MoveTo(targetPos) end
             end
-            if PLR.Character then PLR.Character:MoveTo(target) end
+        end
+    end
+
+    -- TELEPORTS TAB
+    Tabs.Teleports:AddButton({
+        Title = "Instant Base Escape",
+        Description = "Teleports to the Main Farm",
+        Callback = function() TeleportAll(Vector3.new(715, 39, -2122)) end
+    })
+
+    Tabs.Teleports:AddDropdown("BaseSelector", {
+        Title = "Select Base",
+        Values = {
+            "Noob's Base", "Builderman (David)", "Farmer", "Mafia's Base", 
+            "Granny's Base", "Cowboy's Base", "Mummy's Base", "Werewolf's Base", 
+            "Vampire's Base", "Lifeguard's Base", "Pirate's Base", "Diver's Base", 
+            "Shark's Base", "Slayer", "Knight Judge"
+        },
+        Default = "Noob's Base",
+    })
+
+    Tabs.Teleports:AddButton({
+        Title = "Teleport to Selection",
+        Callback = function()
+            local choice = Options.BaseSelector.Value
+            if choice == "Noob's Base" then TeleportAll(Vector3.new(0, 5, 0))
+            elseif choice == "Slayer" then TeleportAll(Vector3.new(715, 39, -2122))
+            elseif choice == "Builderman (David)" then TeleportAll(Vector3.new(100, 5, 100))
+            -- Add the other coordinates here as you find them!
+            end
         end
     })
 
-    ---------------------------------------------------------
-    -- BOOSTED GHOST MODE (SPEED BYPASS)
-    ---------------------------------------------------------
-    local ghostConn
-    Tabs.Stats:AddToggle("CarpetGhost", {
-        Title = "Carpet Ghost (Noclip Speed)", 
-        Description = "Bypasses red carpet and goes fast",
-        Default = false
-    }):OnChanged(function(v)
-        if ghostConn then ghostConn:Disconnect() end
-        if v then
-            ghostConn = RunService.Stepped:Connect(function()
-                local char = PLR.Character
-                if char then
-                    -- Noclip: Disables carpet collision
-                    for _, part in pairs(char:GetDescendants()) do
-                        if part:IsA("BasePart") then part.CanCollide = false end
-                    end
-                    
-                    local root = char:FindFirstChild("HumanoidRootPart")
-                    local hum = char:FindFirstChild("Humanoid")
-                    if root and hum and hum.MoveDirection.Magnitude > 0 then
-                        -- Multiplier is boosted here. 
-                        -- (Speed / 5) is much faster than (Speed / 10).
-                        root.CFrame = root.CFrame + (hum.MoveDirection * (Options.GhostSpeed.Value / 5))
-                    end
-                end
-            end)
+    Tabs.Teleports:AddButton({
+        Title = "Get My Current Coords (Check F9)",
+        Callback = function()
+            local pos = PLR.Character.HumanoidRootPart.Position
+            print("Current Coords: Vector3.new(" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")")
+            Fluent:Notify({Title = "Coords Copied to Console", Content = "Press F9 to see them!", Duration = 5})
         end
-    end)
-
-    Tabs.Stats:AddSlider("GhostSpeed", {
-        Title = "Ghost Movement Power", 
-        Default = 10, 
-        Min = 1, 
-        Max = 50, -- Increased max speed
-        Rounding = 1
     })
 
     -- CONFIG
@@ -81,5 +78,4 @@ do
     InterfaceManager:SetLibrary(Fluent)
     InterfaceManager:BuildInterfaceSection(Tabs.Settings)
     SaveManager:BuildConfigSection(Tabs.Settings)
-    Window:SelectTab(1)
 end
