@@ -14,7 +14,6 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "box" }),
-    Upgrades = Window:AddTab({ Title = "Upgrades", Icon = "info" }),
     Stats = Window:AddTab({ Title = "Stats", Icon = "gauge" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
@@ -25,27 +24,8 @@ do
     local RS = game:GetService("ReplicatedStorage")
     local PLR = game.Players.LocalPlayer
     local RunService = game:GetService("RunService")
-    local knit = RS:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services")
-
-    -- AUTO CLAIM & REBIRTH
-    local claimRF = knit:WaitForChild("PlaytimeRewardService"):WaitForChild("RF"):WaitForChild("ClaimGift")
-    local rebirthRF = knit:WaitForChild("RebirthService"):WaitForChild("RF"):WaitForChild("Rebirth")
     
-    Tabs.Main:AddToggle("AC", {Title = "Auto Claim Rewards", Default = false}):OnChanged(function(v)
-        task.spawn(function() while v and task.wait(1) do for i=1,12 do pcall(function() claimRF:InvokeServer(i) end) end end end)
-    end)
-    
-    Tabs.Main:AddToggle("AR", {Title = "Auto Rebirth", Default = false}):OnChanged(function(v)
-        task.spawn(function() while v and task.wait(1) do pcall(function() rebirthRF:InvokeServer() end) end end)
-    end)
-
-    -- UPGRADES
-    local upgRF = knit:WaitForChild("UpgradesService"):WaitForChild("RF"):WaitForChild("Upgrade")
-    Tabs.Upgrades:AddToggle("AU", {Title = "Auto Upgrade Speed", Default = false}):OnChanged(function(v)
-        task.spawn(function() while v and task.wait(0.5) do pcall(function() upgRF:InvokeServer("MovementSpeed", 1) end) end end)
-    end)
-
-    -- STATS (BYPASS TELEPORT & VELOCITY)
+    -- KEEP WORKING TELEPORT
     Tabs.Stats:AddButton({
         Title = "Instant Base Escape",
         Callback = function()
@@ -57,21 +37,32 @@ do
         end
     })
 
-    local velConn
-    Tabs.Stats:AddToggle("VelSpeed", {Title = "Velocity Push (Bypass)", Default = false}):OnChanged(function(v)
-        if velConn then velConn:Disconnect() end
+    ---------------------------------------------------------
+    -- RED CARPET BYPASS (CFRAME FLY)
+    ---------------------------------------------------------
+    local flyConn
+    Tabs.Stats:AddToggle("FlyBypass", {
+        Title = "Red Carpet Bypass (Fly)", 
+        Description = "Use this to cross the red carpet safely!",
+        Default = false
+    }):OnChanged(function(v)
+        if flyConn then flyConn:Disconnect() end
         if v then
-            velConn = RunService.Heartbeat:Connect(function()
+            flyConn = RunService.Heartbeat:Connect(function()
                 local char = PLR.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
-                if root and char.Humanoid.MoveDirection.Magnitude > 0 then
-                    root.Velocity = char.Humanoid.MoveDirection * Options.VelPower.Value
+                local hum = char and char:FindFirstChild("Humanoid")
+                
+                if root and hum and hum.MoveDirection.Magnitude > 0 then
+                    -- This teleports you through the air so the carpet can't stop you
+                    root.CFrame = root.CFrame + (hum.MoveDirection * (Options.FlySpeed.Value / 10))
+                    root.Velocity = Vector3.new(0, 0, 0) -- Stops the game from pushing you back
                 end
             end)
         end
     end)
 
-    Tabs.Stats:AddSlider("VelPower", {Title = "Push Power", Default = 150, Min = 50, Max = 260, Rounding = 0})
+    Tabs.Stats:AddSlider("FlySpeed", {Title = "Fly Bypass Speed", Default = 5, Min = 1, Max = 20, Rounding = 1})
 
     -- CONFIG
     SaveManager:SetLibrary(Fluent)
