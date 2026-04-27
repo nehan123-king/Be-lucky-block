@@ -31,7 +31,7 @@ do
     local knit = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services")
 
     ---------------------------------------------------------
-    -- MAIN FUNCTIONS
+    -- AUTO CLAIM & REBIRTH (MAIN)
     ---------------------------------------------------------
     local claimGift = knit:WaitForChild("PlaytimeRewardService"):WaitForChild("RF"):WaitForChild("ClaimGift")
     local autoClaiming = false
@@ -63,12 +63,12 @@ do
     end)
 
     ---------------------------------------------------------
-    -- STATS (SAFE BYPASS SPEED)
+    -- STATS (FIXED BYPASS SPEED)
     ---------------------------------------------------------
     local speedConn
     local SpeedToggle = Tabs.Stats:AddToggle("MovementToggle", {
-        Title = "Enable God Speed (Base Escape)", 
-        Description = "Stay under 2500 to avoid kicks!",
+        Title = "Enable God Speed (Anti-Cheat Bypass)", 
+        Description = "Stay under 2200 to avoid 'Suspected of Cheating' kicks!",
         Default = false
     })
     
@@ -80,8 +80,8 @@ do
                 if folder then
                     for _, model in ipairs(folder:GetChildren()) do
                         if model:GetAttribute("OwnerId") == player.UserId then
-                            -- Keeps you fast but under the anti-cheat kick threshold
-                            local val = math.min(Options.MovementSlider.Value, 2500)
+                            -- Internal cap to bypass the red cheating message
+                            local val = math.min(Options.MovementSlider.Value, 2200)
                             model:SetAttribute("MovementSpeed", val)
                         end
                     end
@@ -94,7 +94,7 @@ do
         Title = "Brainrot Speed", 
         Default = 1000, 
         Min = 50, 
-        Max = 3000, 
+        Max = 2500, 
         Rounding = 0
     })
 
@@ -109,6 +109,7 @@ do
                 while farmRunning do
                     local char = player.Character or player.CharacterAdded:Wait()
                     local root = char:WaitForChild("HumanoidRootPart")
+                    -- Teleport to the best zone
                     root.CFrame = CFrame.new(715, 39, -2122)
                     task.wait(2)
                 end
@@ -117,7 +118,7 @@ do
     end)
 
     ---------------------------------------------------------
-    -- SETTINGS
+    -- SAVE & SETTINGS
     ---------------------------------------------------------
     SaveManager:SetLibrary(Fluent)
     InterfaceManager:SetLibrary(Fluent)
