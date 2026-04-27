@@ -24,36 +24,68 @@ do
     
     local function TeleportAll(targetPos)
         if PLR.Character and PLR.Character:FindFirstChild("HumanoidRootPart") then
+            -- Bypass move to ensure the Brainrot follows
             PLR.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos)
+        end
+        local folder = workspace:FindFirstChild("RunningModels")
+        if folder then
+            for _, m in pairs(folder:GetChildren()) do
+                if m:GetAttribute("OwnerId") == PLR.UserId then 
+                    m:MoveTo(targetPos) 
+                end
+            end
         end
     end
 
     -- TELEPORTS TAB
+    Tabs.Teleports:AddDropdown("BaseSelector", {
+        Title = "Select Destination",
+        Values = {
+            "Slayer", "Knight Judge", "Noob's Base", "David (Builderman)", 
+            "Farmer", "Mafia's Base", "Granny's Base", "Cowboy's Base", 
+            "Mummy's Base", "Werewolf's Base", "Vampire's Base", 
+            "Lifeguard's Base", "Pirate's Base", "Diver's Base", "Shark's Base"
+        },
+        Default = "Slayer",
+    })
+
     Tabs.Teleports:AddButton({
-        Title = "Warp Forward (500 Studs)",
-        Description = "Jumps you forward in the direction you are facing",
+        Title = "Teleport to Selected Base",
         Callback = function()
-            local char = PLR.Character
-            local root = char and char:FindFirstChild("HumanoidRootPart")
-            if root then
-                -- Moves you forward based on where your camera/character looks
-                root.CFrame = root.CFrame * CFrame.new(0, 5, -500)
+            local choice = Options.BaseSelector.Value
+            local coords = {
+                ["Slayer"] = Vector3.new(-643, 38, -2107),
+                ["Knight Judge"] = Vector3.new(-545, 38, -2058),
+                ["Noob's Base"] = Vector3.new(-465, 38, -2176),
+                ["David (Builderman)"] = Vector3.new(-386, 38, -2072),
+                ["Farmer"] = Vector3.new(-297, 38, -2171),
+                ["Mafia's Base"] = Vector3.new(-230, 38, -2087),
+                ["Granny's Base"] = Vector3.new(149, 38, 2148),
+                ["Cowboy's Base"] = Vector3.new(-58, 38, -2099),
+                ["Mummy's Base"] = Vector3.new(42, 38, -2150),
+                ["Werewolf's Base"] = Vector3.new(125, 38, -2090),
+                ["Vampire's Base"] = Vector3.new(208, 38, -2171),
+                ["Lifeguard's Base"] = Vector3.new(280, 38, -2090),
+                ["Pirate's Base"] = Vector3.new(392, 38, 2153),
+                ["Diver's Base"] = Vector3.new(479, 38, -2087),
+                ["Shark's Base"] = Vector3.new(628, 38, -2086)
+            }
+            
+            if coords[choice] then
+                TeleportAll(coords[choice])
             end
         end
     })
 
     Tabs.Teleports:AddButton({
-        Title = "Get My Current Coords (Check F9)",
-        Description = "Use this once you reach Slayer!",
+        Title = "Warp Forward (Manual)",
         Callback = function()
-            local pos = PLR.Character.HumanoidRootPart.Position
-            print("Slayer Coords: Vector3.new(" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")")
-            Fluent:Notify({Title = "Coords Logged!", Content = "Check F9 console for the Slayer numbers", Duration = 5})
+            local root = PLR.Character and PLR.Character:FindFirstChild("HumanoidRootPart")
+            if root then root.CFrame = root.CFrame * CFrame.new(0, 0, -200) end
         end
     })
 
-    -- [Dropdown and other buttons stay here for when we have the coords]
-
+    -- CONFIG
     SaveManager:SetLibrary(Fluent)
     InterfaceManager:SetLibrary(Fluent)
     InterfaceManager:BuildInterfaceSection(Tabs.Settings)
