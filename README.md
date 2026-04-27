@@ -20,21 +20,28 @@ local Tabs = {
 local Options = Fluent.Options
 
 do
+    local TweenService = game:GetService("TweenService")
     local PLR = game.Players.LocalPlayer
     
-    local function TeleportAll(targetPos)
-        if PLR.Character and PLR.Character:FindFirstChild("HumanoidRootPart") then
-            -- Bypass move to ensure the Brainrot follows
-            PLR.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos)
-        end
+    local function SafeTeleport(targetPos)
+        local char = PLR.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if not root then return end
+
+        -- Move models first
         local folder = workspace:FindFirstChild("RunningModels")
         if folder then
             for _, m in pairs(folder:GetChildren()) do
-                if m:GetAttribute("OwnerId") == PLR.UserId then 
-                    m:MoveTo(targetPos) 
-                end
+                if m:GetAttribute("OwnerId") == PLR.UserId then m:MoveTo(targetPos) end
             end
         end
+
+        -- Tween Bypass: Slides you through the air to confuse the anti-cheat
+        local distance = (root.Position - targetPos).Magnitude
+        local info = TweenInfo.new(distance / 150, Enum.EasingStyle.Linear) -- Speed control
+        local tween = TweenService:Create(root, info, {CFrame = CFrame.new(targetPos + Vector3.new(0, 10, 0))})
+        
+        tween:Play()
     end
 
     -- TELEPORTS TAB
@@ -50,7 +57,7 @@ do
     })
 
     Tabs.Teleports:AddButton({
-        Title = "Teleport to Selected Base",
+        Title = "Safe Teleport (Anti-Cheat Bypass)",
         Callback = function()
             local choice = Options.BaseSelector.Value
             local coords = {
@@ -72,16 +79,8 @@ do
             }
             
             if coords[choice] then
-                TeleportAll(coords[choice])
+                SafeTeleport(coords[choice])
             end
-        end
-    })
-
-    Tabs.Teleports:AddButton({
-        Title = "Warp Forward (Manual)",
-        Callback = function()
-            local root = PLR.Character and PLR.Character:FindFirstChild("HumanoidRootPart")
-            if root then root.CFrame = root.CFrame * CFrame.new(0, 0, -200) end
         end
     })
 
