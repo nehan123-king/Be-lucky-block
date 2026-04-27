@@ -24,109 +24,104 @@ local Tabs = {
 local Options = Fluent.Options
 
 do
----------------------------------------------------------
--- MAIN TAB (Auto Claim, Rebirth, Event Pass, Buy)
----------------------------------------------------------
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local knit = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services")
+    local ReplicatedStorage = game:GetService("ReplicatedStorage")
+    local Players = game:GetService("Players")
+    local player = Players.LocalPlayer
+    local RunService = game:GetService("RunService")
+    local knit = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services")
 
--- Auto Claim Playtime
-local claimGift = knit:WaitForChild("PlaytimeRewardService"):WaitForChild("RF"):WaitForChild("ClaimGift")
-local autoClaiming = false
-Tabs.Main:AddToggle("ACPR", { Title = "Auto Claim Playtime Rewards", Default = false }):OnChanged(function(s)
-    autoClaiming = s
-    task.spawn(function()
-        while autoClaiming do
-            for i = 1, 12 do if not autoClaiming then break end pcall(function() claimGift:InvokeServer(i) end) task.wait(0.25) end
-            task.wait(1)
-        end
-    end)
-end)
-
--- Auto Rebirth
-local rebirthRF = knit:WaitForChild("RebirthService"):WaitForChild("RF"):WaitForChild("Rebirth")
-local autoRebirth = false
-Tabs.Main:AddToggle("AR", { Title = "Auto Rebirth", Default = false }):OnChanged(function(s)
-    autoRebirth = s
-    task.spawn(function() while autoRebirth do pcall(function() rebirthRF:InvokeServer() end) task.wait(1) end end)
-end)
-
--- Auto Buy Best
-local buySkin = knit:WaitForChild("SkinService"):WaitForChild("RF"):WaitForChild("BuySkin")
-local autoBuy = false
-Tabs.Main:AddToggle("ABL", { Title = "Auto Buy Best Brainrot", Default = false }):OnChanged(function(s) autoBuy = s end)
--- (Your existing Shop detection logic would go here in a loop)
-
----------------------------------------------------------
--- BRAINROTS TAB (Pickup, Teleport, Auto Farm)
----------------------------------------------------------
-Tabs.Brainrots:AddButton({
-    Title = "Pickup All Your Brainrots",
-    Callback = function()
-        -- Your existing plot detection and PickupBrainrot logic
-    end
-})
-
-local farmRunning = false
-Tabs.Brainrots:AddToggle("AutoFarmToggle", { Title = "Auto Farm Best Brainrots", Default = false }):OnChanged(function(s)
-    farmRunning = s
-    if s then
+    ---------------------------------------------------------
+    -- MAIN FUNCTIONS
+    ---------------------------------------------------------
+    local claimGift = knit:WaitForChild("PlaytimeRewardService"):WaitForChild("RF"):WaitForChild("ClaimGift")
+    local autoClaiming = false
+    Tabs.Main:AddToggle("ACPR", {Title = "Auto Claim Playtime Rewards", Default = false}):OnChanged(function(s)
+        autoClaiming = s
         task.spawn(function()
-            while farmRunning do
-                -- Your existing Auto Farm CFrame logic
-                task.wait(2)
+            while autoClaiming do
+                for i = 1, 12 do if not autoClaiming then break end pcall(function() claimGift:InvokeServer(i) end) task.wait(0.25) end
+                task.wait(1)
             end
         end)
-    end
-end)
+    end)
 
----------------------------------------------------------
--- STATS TAB (THE 50K SPEED FIX)
----------------------------------------------------------
-local RunService = game:GetService("RunService")
-local speedConn
+    local rebirth = knit:WaitForChild("RebirthService"):WaitForChild("RF"):WaitForChild("Rebirth")
+    local autoRebirth = false
+    Tabs.Main:AddToggle("AR", {Title = "Auto Rebirth", Default = false}):OnChanged(function(s)
+        autoRebirth = s
+        task.spawn(function() while autoRebirth do pcall(function() rebirth:InvokeServer() end) task.wait(1) end end)
+    end)
 
-local SpeedToggle = Tabs.Stats:AddToggle("MovementToggle", {
-    Title = "Enable God Speed (Base Escape)",
-    Default = false
-})
+    ---------------------------------------------------------
+    -- UPGRADES
+    ---------------------------------------------------------
+    local upgrade = knit:WaitForChild("UpgradesService"):WaitForChild("RF"):WaitForChild("Upgrade")
+    local upgRunning = false
+    Tabs.Upgrades:AddToggle("AMS", {Title = "Auto Upgrade Speed", Default = false}):OnChanged(function(s)
+        upgRunning = s
+        task.spawn(function() while upgRunning do pcall(function() upgrade:InvokeServer("MovementSpeed", 1) end) task.wait(0.5) end end)
+    end)
 
-SpeedToggle:OnChanged(function()
-    if speedConn then speedConn:Disconnect() end
-    if Options.MovementToggle.Value then
-        speedConn = RunService.Stepped:Connect(function()
-            local folder = workspace:FindFirstChild("RunningModels")
-            if folder then
-                for _, model in ipairs(folder:GetChildren()) do
-                    if model:GetAttribute("OwnerId") == game.Players.LocalPlayer.UserId then
-                        -- Forces speed to override carrying weight
-                        model:SetAttribute("MovementSpeed", Options.MovementSlider.Value)
+    ---------------------------------------------------------
+    -- STATS (SAFE BYPASS SPEED)
+    ---------------------------------------------------------
+    local speedConn
+    local SpeedToggle = Tabs.Stats:AddToggle("MovementToggle", {
+        Title = "Enable God Speed (Base Escape)", 
+        Description = "Stay under 2500 to avoid kicks!",
+        Default = false
+    })
+    
+    SpeedToggle:OnChanged(function()
+        if speedConn then speedConn:Disconnect() end
+        if Options.MovementToggle.Value then
+            speedConn = RunService.Heartbeat:Connect(function()
+                local folder = workspace:FindFirstChild("RunningModels")
+                if folder then
+                    for _, model in ipairs(folder:GetChildren()) do
+                        if model:GetAttribute("OwnerId") == player.UserId then
+                            -- Keeps you fast but under the anti-cheat kick threshold
+                            local val = math.min(Options.MovementSlider.Value, 2500)
+                            model:SetAttribute("MovementSpeed", val)
+                        end
                     end
                 end
-            end
-        end)
-    end
-end)
+            end)
+        end
+    end)
 
-Tabs.Stats:AddSlider("MovementSlider", {
-    Title = "Brainrot Speed",
-    Default = 10000,
-    Min = 50,
-    Max = 50000,
-    Rounding = 0
-})
+    Tabs.Stats:AddSlider("MovementSlider", {
+        Title = "Brainrot Speed", 
+        Default = 1000, 
+        Min = 50, 
+        Max = 3000, 
+        Rounding = 0
+    })
 
----------------------------------------------------------
--- SELL TAB
----------------------------------------------------------
--- Your existing Sell logic using SellBrainrot RF
+    ---------------------------------------------------------
+    -- FARMING
+    ---------------------------------------------------------
+    local farmRunning = false
+    Tabs.Brainrots:AddToggle("AutoFarmToggle", {Title = "Auto Farm Best Brainrots", Default = false}):OnChanged(function(s)
+        farmRunning = s
+        if s then
+            task.spawn(function()
+                while farmRunning do
+                    local char = player.Character or player.CharacterAdded:Wait()
+                    local root = char:WaitForChild("HumanoidRootPart")
+                    root.CFrame = CFrame.new(715, 39, -2122)
+                    task.wait(2)
+                end
+            end)
+        end
+    end)
 
----------------------------------------------------------
--- SETTINGS
----------------------------------------------------------
-SaveManager:SetLibrary(Fluent)
-InterfaceManager:SetLibrary(Fluent)
-InterfaceManager:BuildInterfaceSection(Tabs.Settings)
-SaveManager:BuildConfigSection(Tabs.Settings)
-Window:SelectTab(1)
+    ---------------------------------------------------------
+    -- SETTINGS
+    ---------------------------------------------------------
+    SaveManager:SetLibrary(Fluent)
+    InterfaceManager:SetLibrary(Fluent)
+    InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+    SaveManager:BuildConfigSection(Tabs.Settings)
+    Window:SelectTab(1)
 end
