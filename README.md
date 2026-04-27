@@ -25,7 +25,7 @@ do
     local PLR = game.Players.LocalPlayer
     local RunService = game:GetService("RunService")
     
-    -- KEEP WORKING TELEPORT
+    -- INSTANT ESCAPE (STILL WORKS)
     Tabs.Stats:AddButton({
         Title = "Instant Base Escape",
         Callback = function()
@@ -33,36 +33,41 @@ do
             for _, m in pairs(workspace.RunningModels:GetChildren()) do
                 if m:GetAttribute("OwnerId") == PLR.UserId then m:MoveTo(target) end
             end
-            if PLR.Character then PLR.Character.HumanoidRootPart.CFrame = CFrame.new(target) end
+            if PLR.Character then PLR.Character:MoveTo(target) end
         end
     })
 
     ---------------------------------------------------------
-    -- RED CARPET BYPASS (CFRAME FLY)
+    -- THE CARPET GHOST (PHYSICS BYPASS)
     ---------------------------------------------------------
-    local flyConn
-    Tabs.Stats:AddToggle("FlyBypass", {
-        Title = "Red Carpet Bypass (Fly)", 
-        Description = "Use this to cross the red carpet safely!",
+    local ghostConn
+    Tabs.Stats:AddToggle("CarpetGhost", {
+        Title = "Carpet Ghost Mode", 
+        Description = "Walk through the carpet and anti-cheats",
         Default = false
     }):OnChanged(function(v)
-        if flyConn then flyConn:Disconnect() end
+        if ghostConn then ghostConn:Disconnect() end
         if v then
-            flyConn = RunService.Heartbeat:Connect(function()
+            ghostConn = RunService.Stepped:Connect(function()
                 local char = PLR.Character
-                local root = char and char:FindFirstChild("HumanoidRootPart")
-                local hum = char and char:FindFirstChild("Humanoid")
-                
-                if root and hum and hum.MoveDirection.Magnitude > 0 then
-                    -- This teleports you through the air so the carpet can't stop you
-                    root.CFrame = root.CFrame + (hum.MoveDirection * (Options.FlySpeed.Value / 10))
-                    root.Velocity = Vector3.new(0, 0, 0) -- Stops the game from pushing you back
+                if char then
+                    -- This disables collisions so the carpet sensors miss you
+                    for _, part in pairs(char:GetDescendants()) do
+                        if part:IsA("BasePart") then part.CanCollide = false end
+                    end
+                    
+                    local root = char:FindFirstChild("HumanoidRootPart")
+                    local hum = char:FindFirstChild("Humanoid")
+                    if root and hum and hum.MoveDirection.Magnitude > 0 then
+                        -- Smooth CFrame movement that bypasses velocity checks
+                        root.CFrame = root.CFrame + (hum.MoveDirection * (Options.GhostSpeed.Value / 10))
+                    end
                 end
             end)
         end
     end)
 
-    Tabs.Stats:AddSlider("FlySpeed", {Title = "Fly Bypass Speed", Default = 5, Min = 1, Max = 20, Rounding = 1})
+    Tabs.Stats:AddSlider("GhostSpeed", {Title = "Ghost Speed", Default = 8, Min = 1, Max = 15, Rounding = 1})
 
     -- CONFIG
     SaveManager:SetLibrary(Fluent)
