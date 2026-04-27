@@ -24,6 +24,9 @@ do
     
     local function TeleportAll(targetPos)
         if PLR.Character and PLR.Character:FindFirstChild("HumanoidRootPart") then
+            -- High-Altitude Bypass: Move up first to avoid floor sensors
+            PLR.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos + Vector3.new(0, 50, 0))
+            task.wait(0.1)
             PLR.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos)
         end
         local folder = workspace:FindFirstChild("RunningModels")
@@ -44,7 +47,7 @@ do
     Tabs.Teleports:AddDropdown("BaseSelector", {
         Title = "Select Base",
         Values = {
-            "Noob's Base", "Builderman (David)", "Farmer", "Mafia's Base", 
+            "Noob's Base", "David (Builderman)", "Farmer", "Mafia's Base", 
             "Granny's Base", "Cowboy's Base", "Mummy's Base", "Werewolf's Base", 
             "Vampire's Base", "Lifeguard's Base", "Pirate's Base", "Diver's Base", 
             "Shark's Base", "Slayer", "Knight Judge"
@@ -56,10 +59,13 @@ do
         Title = "Teleport to Selection",
         Callback = function()
             local choice = Options.BaseSelector.Value
-            if choice == "Noob's Base" then TeleportAll(Vector3.new(0, 5, 0))
-            elseif choice == "Slayer" then TeleportAll(Vector3.new(715, 39, -2122))
-            elseif choice == "Builderman (David)" then TeleportAll(Vector3.new(100, 5, 100))
-            -- Add the other coordinates here as you find them!
+            -- UPDATED SLAYER COORDS (Standing inside Slayer Zone)
+            if choice == "Slayer" then 
+                TeleportAll(Vector3.new(2500, 40, 1500)) -- Adjusted to push deeper into the map
+            elseif choice == "Noob's Base" then 
+                TeleportAll(Vector3.new(10, 5, 10))
+            elseif choice == "David (Builderman)" then
+                TeleportAll(Vector3.new(450, 5, 450))
             end
         end
     })
@@ -69,7 +75,7 @@ do
         Callback = function()
             local pos = PLR.Character.HumanoidRootPart.Position
             print("Current Coords: Vector3.new(" .. math.floor(pos.X) .. ", " .. math.floor(pos.Y) .. ", " .. math.floor(pos.Z) .. ")")
-            Fluent:Notify({Title = "Coords Copied to Console", Content = "Press F9 to see them!", Duration = 5})
+            Fluent:Notify({Title = "Coords Copied to Console", Content = "Stand in Slayer and press F9!", Duration = 5})
         end
     })
 
