@@ -14,6 +14,7 @@ local Window = Fluent:CreateWindow({
 
 local Tabs = {
     Main = Window:AddTab({ Title = "Main", Icon = "box" }),
+    Upgrades = Window:AddTab({ Title = "Upgrades", Icon = "info" }),
     Stats = Window:AddTab({ Title = "Stats", Icon = "gauge" }),
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" })
 }
@@ -21,69 +22,58 @@ local Tabs = {
 local Options = Fluent.Options
 
 do
+    local RS = game:GetService("ReplicatedStorage")
+    local PLR = game.Players.LocalPlayer
     local RunService = game:GetService("RunService")
-    local player = game.Players.LocalPlayer
-    local dashConn
+    local knit = RS:WaitForChild("Packages"):WaitForChild("_Index"):WaitForChild("sleitnick_knit@1.7.0"):WaitForChild("knit"):WaitForChild("Services")
 
-    ---------------------------------------------------------
-    -- WORKING TELEPORT
-    ---------------------------------------------------------
+    -- AUTO CLAIM & REBIRTH
+    local claimRF = knit:WaitForChild("PlaytimeRewardService"):WaitForChild("RF"):WaitForChild("ClaimGift")
+    local rebirthRF = knit:WaitForChild("RebirthService"):WaitForChild("RF"):WaitForChild("Rebirth")
+    
+    Tabs.Main:AddToggle("AC", {Title = "Auto Claim Rewards", Default = false}):OnChanged(function(v)
+        task.spawn(function() while v and task.wait(1) do for i=1,12 do pcall(function() claimRF:InvokeServer(i) end) end end end)
+    end)
+    
+    Tabs.Main:AddToggle("AR", {Title = "Auto Rebirth", Default = false}):OnChanged(function(v)
+        task.spawn(function() while v and task.wait(1) do pcall(function() rebirthRF:InvokeServer() end) end end)
+    end)
+
+    -- UPGRADES
+    local upgRF = knit:WaitForChild("UpgradesService"):WaitForChild("RF"):WaitForChild("Upgrade")
+    Tabs.Upgrades:AddToggle("AU", {Title = "Auto Upgrade Speed", Default = false}):OnChanged(function(v)
+        task.spawn(function() while v and task.wait(0.5) do pcall(function() upgRF:InvokeServer("MovementSpeed", 1) end) end end)
+    end)
+
+    -- STATS (BYPASS TELEPORT & VELOCITY)
     Tabs.Stats:AddButton({
         Title = "Instant Base Escape",
-        Description = "Teleports you out instantly",
         Callback = function()
-            local folder = workspace:FindFirstChild("RunningModels")
-            local targetPos = Vector3.new(715, 39, -2122) 
-            if folder then
-                for _, model in ipairs(folder:GetChildren()) do
-                    if model:GetAttribute("OwnerId") == player.UserId then
-                        model:MoveTo(targetPos)
-                    end
-                end
+            local target = Vector3.new(715, 39, -2122)
+            for _, m in pairs(workspace.RunningModels:GetChildren()) do
+                if m:GetAttribute("OwnerId") == PLR.UserId then m:MoveTo(target) end
             end
-            if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                player.Character.HumanoidRootPart.CFrame = CFrame.new(targetPos)
-            end
+            if PLR.Character then PLR.Character.HumanoidRootPart.CFrame = CFrame.new(target) end
         end
     })
 
-    ---------------------------------------------------------
-    -- BYPASS DASH (REPLACES BROKEN SPEED)
-    ---------------------------------------------------------
-    local DashToggle = Tabs.Stats:AddToggle("DashToggle", {
-        Title = "Enable Bypass Dash", 
-        Description = "Move fast without getting kicked",
-        Default = false
-    })
-    
-    DashToggle:OnChanged(function()
-        if dashConn then dashConn:Disconnect() end
-        if Options.DashToggle.Value then
-            dashConn = RunService.Heartbeat:Connect(function()
-                local char = player.Character
-                local hum = char and char:FindFirstChild("Humanoid")
+    local velConn
+    Tabs.Stats:AddToggle("VelSpeed", {Title = "Velocity Push (Bypass)", Default = false}):OnChanged(function(v)
+        if velConn then velConn:Disconnect() end
+        if v then
+            velConn = RunService.Heartbeat:Connect(function()
+                local char = PLR.Character
                 local root = char and char:FindFirstChild("HumanoidRootPart")
-                
-                if hum and root and hum.MoveDirection.Magnitude > 0 then
-                    -- This teleports you forward 2 studs every frame
-                    -- It confuses the server's speed check
-                    root.CFrame = root.CFrame + (hum.MoveDirection * (Options.DashPower.Value / 10))
+                if root and char.Humanoid.MoveDirection.Magnitude > 0 then
+                    root.Velocity = char.Humanoid.MoveDirection * Options.VelPower.Value
                 end
             end)
         end
     end)
 
-    Tabs.Stats:AddSlider("DashPower", {
-        Title = "Dash Power", 
-        Default = 5, 
-        Min = 1, 
-        Max = 15, 
-        Rounding = 1
-    })
+    Tabs.Stats:AddSlider("VelPower", {Title = "Push Power", Default = 150, Min = 50, Max = 260, Rounding = 0})
 
-    ---------------------------------------------------------
-    -- FINAL CONFIG
-    ---------------------------------------------------------
+    -- CONFIG
     SaveManager:SetLibrary(Fluent)
     InterfaceManager:SetLibrary(Fluent)
     InterfaceManager:BuildInterfaceSection(Tabs.Settings)
